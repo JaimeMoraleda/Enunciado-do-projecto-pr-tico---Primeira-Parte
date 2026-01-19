@@ -1,5 +1,6 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
 
+// Programador que se mueve por el tablero
 public class Programmer extends BoardElement {
 
     private int id;
@@ -54,6 +55,6 @@ public class Programmer extends BoardElement {
 
     @Override
     public void react(GameManager gameManager, Player player) {
-        // sin efecto
+        // No hace nada
     }
 }

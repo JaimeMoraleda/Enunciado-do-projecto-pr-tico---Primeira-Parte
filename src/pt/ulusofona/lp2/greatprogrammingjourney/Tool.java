@@ -1,5 +1,6 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
 
+// Clase base de todas las herramientas
 public abstract class Tool extends BoardElement {
 
     protected String name;

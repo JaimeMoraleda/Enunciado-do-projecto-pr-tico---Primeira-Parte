@@ -1,5 +1,6 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
 
+// Abismo especial para época de recurso
 public class LLMAbyss extends Abyss {
 
     public LLMAbyss() {
@@ -9,6 +10,7 @@ public class LLMAbyss extends Abyss {
     @Override
     public void react(GameManager gameManager, Player player) {
 
+        // Antes del 4º movimiento retrocede
         if (player.getMoveCount() < 4) {
 
             if (player.getProgrammer().hasProfessorHelp()) {
@@ -25,6 +27,7 @@ public class LLMAbyss extends Abyss {
             return;
         }
 
+        // A partir del 4º movimiento avanza
         int forwardPos = player.getCurrentPosition() + player.getLastMove();
         if (forwardPos >= gameManager.getBoard().getSize()) {
             forwardPos = gameManager.getBoard().getSize() - 1;

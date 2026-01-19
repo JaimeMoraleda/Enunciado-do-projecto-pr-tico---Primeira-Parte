@@ -1,5 +1,6 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
 
+// Herramienta que aumenta el nivel del programador
 public class SkillTool extends Tool {
 
     public SkillTool() {

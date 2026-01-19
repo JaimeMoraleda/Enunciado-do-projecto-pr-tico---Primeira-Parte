@@ -1,5 +1,6 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
 
+// Abismo especial que puede ser evitado con ayuda del profesor
 public class InfiniteLoopAbyss extends Abyss {
 
     public InfiniteLoopAbyss() {

@@ -1,5 +1,6 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
 
+// Abismo base: por defecto mata al jugador
 public class Abyss extends BoardElement {
 
     protected String name;

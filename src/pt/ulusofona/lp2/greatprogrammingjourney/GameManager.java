@@ -5,6 +5,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+// Clase principal del juego, controla toda la lógica
 public class GameManager {
 
     private Board board;
@@ -12,8 +13,9 @@ public class GameManager {
     private int currentPlayerIndex;
     private boolean gameOver;
     private ArrayList<String> gameResults;
-    private boolean someoneMovedThisRound;
 
+    // Usado para detectar empates por bloqueo
+    private boolean someoneMovedThisRound;
 
     public GameManager() {
         players = new ArrayList<>();
@@ -22,7 +24,9 @@ public class GameManager {
         gameResults = new ArrayList<>();
     }
 
-    // ===================== CREATE BOARD =====================
+
+    // CREAR TABLERO
+
 
     public boolean createInitialBoard(String[][] playerInfo, int worldSize) {
         return createInitialBoard(playerInfo, worldSize, null);
@@ -37,7 +41,7 @@ public class GameManager {
         gameResults.clear();
         someoneMovedThisRound = false;
 
-
+        // Crear jugadores
         for (int i = 0; i < playerInfo.length; i++) {
             int id = Integer.parseInt(playerInfo[i][0]);
             String name = playerInfo[i][1];
@@ -46,16 +50,18 @@ public class GameManager {
             Player player = new Player(id, programmer);
             players.add(player);
 
+            // Todos empiezan en la casa 0
             board.getSlot(0).setElement(programmer);
         }
 
+        // Colocar abismos y herramientas
         if (abyssesAndTools != null) {
             for (String[] entry : abyssesAndTools) {
                 int position = Integer.parseInt(entry[0]);
                 int id = Integer.parseInt(entry[1]);
 
                 BoardElement element = createElementById(id);
-                if (element != null) {
+                if (element != null && board.getSlot(position) != null) {
                     board.getSlot(position).setElement(element);
                 }
             }
@@ -64,34 +70,30 @@ public class GameManager {
         return true;
     }
 
-    // ===================== FACTORY =====================
+
+    // FACTORY DE ELEMENTOS
 
     private BoardElement createElementById(int id) {
 
-        if (id == 20) {
-            return new LLMAbyss();
-        }
+        // Abismo nuevo de recurso
+        if (id == 20) return new LLMAbyss();
 
-        if (id == 8) {
-            return new InfiniteLoopAbyss();
-        }
+        // Abismo ciclo infinito
+        if (id == 8) return new InfiniteLoopAbyss();
 
-        if (id >= 0 && id <= 9) {
-            return new Abyss("Abyss " + id);
-        }
+        // Abismos normales
+        if (id >= 0 && id <= 9) return new Abyss("Abyss " + id);
 
-        if (id == 5) {
-            return new ProfessorHelpTool();
-        }
+        // Herramienta ayuda profesor
+        if (id == 5) return new ProfessorHelpTool();
 
-        if (id >= 0 && id <= 5) {
-            return new SkillTool();
-        }
+        // Herramientas de skill
+        if (id >= 0 && id <= 5) return new SkillTool();
 
         return null;
     }
 
-    // ===================== MOVEMENT =====================
+    // MOVIMIENTO
 
     public int getCurrentPlayerID() {
         return players.get(currentPlayerIndex).getId();
@@ -102,7 +104,8 @@ public class GameManager {
         if (gameOver) return false;
 
         Player player = players.get(currentPlayerIndex);
-        // fin de ronda -> verificar empate por bloqueo
+
+        // Final de ronda: comprobar empate por bloqueo
         if (currentPlayerIndex == players.size() - 1) {
 
             if (!someoneMovedThisRound) {
@@ -116,10 +119,10 @@ public class GameManager {
                 return true;
             }
 
-            // reset para próxima ronda
             someoneMovedThisRound = false;
         }
 
+        // Si el jugador está muerto, se salta
         if (!player.isAlive()) {
             currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
             return true;
@@ -132,22 +135,24 @@ public class GameManager {
             newPos = board.getSize() - 1;
         }
 
+        // Quitar del slot anterior
         Slot oldSlot = board.getSlot(oldPos);
         if (oldSlot != null) oldSlot.setElement(null);
 
+        // Mover jugador
         player.moveTo(newPos, nrSpaces);
-        if (newPos != oldPos) {
-            someoneMovedThisRound = true;
-        }
+        if (newPos != oldPos) someoneMovedThisRound = true;
 
-
+        // Reaccionar a abismo o herramienta
         reactToAbyssOrTool();
 
+        // Colocar en nuevo slot si está vacío
         Slot newSlot = board.getSlot(player.getCurrentPosition());
         if (newSlot != null && newSlot.isEmpty()) {
             newSlot.setElement(player.getProgrammer());
         }
 
+        // Victoria
         if (player.getCurrentPosition() == board.getSize() - 1) {
             gameOver = true;
             gameResults.clear();
@@ -155,6 +160,7 @@ public class GameManager {
                     + " at position " + player.getCurrentPosition());
         }
 
+        // Empate si todos muertos
         boolean anyoneAlive = false;
         for (Player p : players) {
             if (p.isAlive()) {
@@ -173,44 +179,40 @@ public class GameManager {
             return true;
         }
 
+        // Siguiente jugador
         currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
         return true;
     }
 
-    // ===================== REACTION =====================
+
+    // REACCIÓN A CASILLA
+
 
     public String reactToAbyssOrTool() {
 
         Player player = players.get(currentPlayerIndex);
 
-        if (!player.isAlive()) {
-            currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
-            return "";
-        }
+        if (!player.isAlive()) return "";
 
         Slot slot = board.getSlot(player.getCurrentPosition());
 
-        if (slot == null || slot.getElement() == null) {
-            return "";
-        }
+        if (slot == null || slot.getElement() == null) return "";
 
         BoardElement element = slot.getElement();
         element.react(this, player);
         return element.getType();
     }
 
-    // ===================== INFO =====================
+
+    // INFORMACIÓN
 
     public String[] getSlotInfo(int position) {
 
         Slot slot = board.getSlot(position);
-        if (slot == null || slot.getElement() == null) {
-            return null;
-        }
+        if (slot == null || slot.getElement() == null) return null;
 
         return slot.getElement().getInfo();
     }
-
 
     public String[] getProgrammerInfo(int id) {
 
@@ -237,7 +239,8 @@ public class GameManager {
         return sb.toString();
     }
 
-    // ===================== RESULTS =====================
+    // RESULTADOS
+
 
     public boolean gameIsOver() {
         return gameOver;
@@ -247,21 +250,20 @@ public class GameManager {
         return gameResults;
     }
 
-    // ===================== SAVE / LOAD =====================
+    // =====================================================
+    // GUARDAR / CARGAR
+    // =====================================================
 
     public boolean saveGame(File file) {
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
 
-            // tamaño tablero
             bw.write(String.valueOf(board.getSize()));
             bw.newLine();
 
-            // jugador actual
             bw.write(String.valueOf(currentPlayerIndex));
             bw.newLine();
 
-            // jugadores
             bw.write(String.valueOf(players.size()));
             bw.newLine();
 
@@ -273,13 +275,13 @@ public class GameManager {
                 bw.newLine();
             }
 
-            // tablero
             for (int i = 0; i < board.getSize(); i++) {
                 Slot s = board.getSlot(i);
                 if (s.getElement() == null) {
                     bw.write("E");
                 } else {
-                    bw.write(s.getElement().getType() + ":" + String.join(",", s.getElement().getInfo()));
+                    bw.write(s.getElement().getType() + ":" +
+                            String.join(",", s.getElement().getInfo()));
                 }
                 bw.newLine();
             }
@@ -290,7 +292,6 @@ public class GameManager {
             return false;
         }
     }
-
 
     public void loadGame(File file) throws InvalidFileException, FileNotFoundException {
 
@@ -349,8 +350,7 @@ public class GameManager {
         }
     }
 
-
-    // ===================== VISUAL =====================
+    // VISUALIZADOR
 
     public String getImagePng(int nrSquare) {
         return "slot.png";
@@ -363,15 +363,13 @@ public class GameManager {
     }
 
     public HashMap<String, String> customizeBoard() {
-
         HashMap<String, String> map = new HashMap<>();
-        map.put("hasNewAbyss", "true");
+        map.put("hasNewAbyss", "true"); // LLM
         map.put("hasNewTool", "true");
         return map;
     }
 
-    // ===================== SUPPORT =====================
-
+    // SOPORTE
     public Board getBoard() {
         return board;
     }

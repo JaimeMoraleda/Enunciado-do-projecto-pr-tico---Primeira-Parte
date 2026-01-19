@@ -1,5 +1,6 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
 
+// Tablero del juego
 public class Board {
 
     private Slot[] slots;

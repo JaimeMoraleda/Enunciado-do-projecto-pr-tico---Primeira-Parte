@@ -1,5 +1,6 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
 
+// Casa del tablero
 public class Slot {
 
     private int position;

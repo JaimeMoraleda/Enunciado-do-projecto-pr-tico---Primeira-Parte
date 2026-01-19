@@ -1,5 +1,6 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
 
+// Representa a un jugador en el juego
 public class Player {
 
     private int id;
@@ -53,7 +54,7 @@ public class Player {
         this.moveCount++;
     }
 
-    // usado para recuos/avanços automáticos
+    // Movimiento forzado por efectos de abismos
     public void forceMoveTo(int position) {
         this.currentPosition = position;
     }
