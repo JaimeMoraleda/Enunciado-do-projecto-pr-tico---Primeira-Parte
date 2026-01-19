@@ -1,29 +1,27 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
-//casilla del tablero
+
 public class Slot {
-    //fila de casillas
+
     private int row;
-    //columna de casillas
     private int column;
-    //programador que ocupa espacio(null si vacio)
-    private Programmer programmer;
+    private BoardElement element;
 
     public Slot(int row, int column) {
         this.row = row;
         this.column = column;
-        this.programmer = null;
+        this.element = null;
     }
-    //casilla vacia?
+
     public boolean isEmpty() {
-        return programmer == null;
+        return element == null;
     }
 
-    public Programmer getProgrammer() {
-        return programmer;
+    public BoardElement getElement() {
+        return element;
     }
 
-    public void setProgrammer(Programmer programmer) {
-        this.programmer = programmer;
+    public void setElement(BoardElement element) {
+        this.element = element;
     }
 
     public int getRow() {
