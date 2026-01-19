@@ -1,17 +1,17 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
 
-public class Programmer {
-    // ID del programador
+public class Programmer extends BoardElement {
+
     private int id;
-    // Nombre
     private String name;
-    //Nivel
     private int skillLevel;
-    //Constructor
+    private boolean hasProfessorHelp;
+
     public Programmer(int id, String name, int skillLevel) {
         this.id = id;
         this.name = name;
         this.skillLevel = skillLevel;
+        this.hasProfessorHelp = false;
     }
 
     public int getId() {
@@ -24,5 +24,36 @@ public class Programmer {
 
     public int getSkillLevel() {
         return skillLevel;
+    }
+
+    public void increaseSkill() {
+        skillLevel++;
+    }
+
+    public boolean hasProfessorHelp() {
+        return hasProfessorHelp;
+    }
+
+    public void giveProfessorHelp() {
+        hasProfessorHelp = true;
+    }
+
+    public void useProfessorHelp() {
+        hasProfessorHelp = false;
+    }
+
+    @Override
+    public String getType() {
+        return "Programmer";
+    }
+
+    @Override
+    public String[] getInfo() {
+        return new String[]{"Programmer", String.valueOf(id), name};
+    }
+
+    @Override
+    public void react(GameManager gameManager, Player player) {
+        // sin efecto
     }
 }

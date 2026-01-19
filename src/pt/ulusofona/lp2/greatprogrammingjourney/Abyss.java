@@ -2,7 +2,7 @@ package pt.ulusofona.lp2.greatprogrammingjourney;
 
 public class Abyss extends BoardElement {
 
-    private String name;
+    protected String name;
 
     public Abyss(String name) {
         this.name = name;
@@ -13,22 +13,13 @@ public class Abyss extends BoardElement {
         return "Abyss";
     }
 
-    public String getName() {
-        return name;
+    @Override
+    public String[] getInfo() {
+        return new String[]{"Abyss", name};
     }
 
     @Override
     public void react(GameManager gameManager, Player player) {
-        Board board = gameManager.getBoard();
-
-        // limpiar casilla actual
-        Slot current = board.getSlot(player.getCurrentRow(), player.getCurrentColumn());
-        if (current != null) {
-            current.setElement(null);
-        }
-
-        // mover al inicio
-        player.moveTo(0, 0);
-        board.getSlot(0, 0).setElement(player.getProgrammer());
+        player.kill();
     }
 }

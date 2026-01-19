@@ -2,14 +2,16 @@ package pt.ulusofona.lp2.greatprogrammingjourney;
 
 public class Slot {
 
-    private int row;
-    private int column;
+    private int position;
     private BoardElement element;
 
-    public Slot(int row, int column) {
-        this.row = row;
-        this.column = column;
+    public Slot(int position) {
+        this.position = position;
         this.element = null;
+    }
+
+    public int getPosition() {
+        return position;
     }
 
     public boolean isEmpty() {
@@ -22,13 +24,5 @@ public class Slot {
 
     public void setElement(BoardElement element) {
         this.element = element;
-    }
-
-    public int getRow() {
-        return row;
-    }
-
-    public int getColumn() {
-        return column;
     }
 }

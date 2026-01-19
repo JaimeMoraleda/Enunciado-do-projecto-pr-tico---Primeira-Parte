@@ -1,34 +1,24 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
-//matriz de casillas
-public class Board {
-    //Num filas
-    private int rows;
-    //NUm columnas
-    private int columns;
-    //Matriz casillas
-    private Slot[][] slots;
-    // Constructor
-    public Board(int rows, int columns) {
-        this.rows = rows;
-        this.columns = columns;
-        this.slots = new Slot[rows][columns];
 
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < columns; c++) {
-                slots[r][c] = new Slot(r, c);
-            }
+public class Board {
+
+    private Slot[] slots;
+
+    public Board(int worldSize) {
+        slots = new Slot[worldSize];
+        for (int i = 0; i < worldSize; i++) {
+            slots[i] = new Slot(i);
         }
     }
 
-    public Slot getSlot(int row, int column) {
-        return slots[row][column];
+    public int getSize() {
+        return slots.length;
     }
 
-    public int getRows() {
-        return rows;
-    }
-
-    public int getColumns() {
-        return columns;
+    public Slot getSlot(int position) {
+        if (position < 0 || position >= slots.length) {
+            return null;
+        }
+        return slots[position];
     }
 }

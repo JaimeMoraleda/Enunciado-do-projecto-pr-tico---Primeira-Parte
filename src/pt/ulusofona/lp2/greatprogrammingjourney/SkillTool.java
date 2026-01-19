@@ -7,11 +7,6 @@ public class SkillTool extends Tool {
     }
 
     @Override
-    public String getType() {
-        return "Tool";
-    }
-
-    @Override
     public void react(GameManager gameManager, Player player) {
         player.getProgrammer().increaseSkill();
     }

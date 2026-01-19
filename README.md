@@ -14,7 +14,7 @@ Aquí está implementada la lógica del juego **The Great Programming Journey**,
 - IntelliJ IDEA
 ## UML Diagram
 Aquí está el diagrama UML con el diseño de las clases del proyecto:
-![UML Diagram](diagrama.png)
+![UML Diagram](uml_parte2_the_great_programming_journey.png)
 
 ## Authors
 Mirar **AUTHORS.txt**

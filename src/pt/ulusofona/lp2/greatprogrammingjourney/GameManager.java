@@ -1,200 +1,376 @@
 package pt.ulusofona.lp2.greatprogrammingjourney;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import javax.swing.*;
+import java.io.*;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 
-// Administra tablero, jugadores y lógica del juego
 public class GameManager {
 
     private Board board;
-    private List<Player> players;
+    private ArrayList<Player> players;
     private int currentPlayerIndex;
     private boolean gameOver;
-    private GameResult gameResult;
+    private ArrayList<String> gameResults;
+    private boolean someoneMovedThisRound;
+
 
     public GameManager() {
         players = new ArrayList<>();
         currentPlayerIndex = 0;
         gameOver = false;
-        gameResult = null;
+        gameResults = new ArrayList<>();
     }
 
-    public void createInitialBoard(int rows, int columns, int playerCount) {
-        board = new Board(rows, columns);
+    // ===================== CREATE BOARD =====================
+
+    public boolean createInitialBoard(String[][] playerInfo, int worldSize) {
+        return createInitialBoard(playerInfo, worldSize, null);
+    }
+
+    public boolean createInitialBoard(String[][] playerInfo, int worldSize, String[][] abyssesAndTools) {
+
+        board = new Board(worldSize);
         players.clear();
-
-        for (int i = 0; i < playerCount; i++) {
-            Programmer programmer = new Programmer(i, "Programmer " + i, 1);
-            Player player = new Player(i, programmer);
-            players.add(player);
-        }
-
-        // Colocar un abismo y una herramienta de ejemplo
-        if (rows > 1 && columns > 1) {
-            board.placeElement(1, 1, new Abyss("Basic Abyss"));
-        }
-
-        if (rows > 2 && columns > 2) {
-            board.placeElement(2, 2, new SkillTool());
-        }
-
         currentPlayerIndex = 0;
         gameOver = false;
-        gameResult = null;
+        gameResults.clear();
+        someoneMovedThisRound = false;
+
+
+        for (int i = 0; i < playerInfo.length; i++) {
+            int id = Integer.parseInt(playerInfo[i][0]);
+            String name = playerInfo[i][1];
+
+            Programmer programmer = new Programmer(id, name, 1);
+            Player player = new Player(id, programmer);
+            players.add(player);
+
+            board.getSlot(0).setElement(programmer);
+        }
+
+        if (abyssesAndTools != null) {
+            for (String[] entry : abyssesAndTools) {
+                int position = Integer.parseInt(entry[0]);
+                int id = Integer.parseInt(entry[1]);
+
+                BoardElement element = createElementById(id);
+                if (element != null) {
+                    board.getSlot(position).setElement(element);
+                }
+            }
+        }
+
+        return true;
     }
 
+    // ===================== FACTORY =====================
+
+    private BoardElement createElementById(int id) {
+
+        if (id == 20) {
+            return new LLMAbyss();
+        }
+
+        if (id == 8) {
+            return new InfiniteLoopAbyss();
+        }
+
+        if (id >= 0 && id <= 9) {
+            return new Abyss("Abyss " + id);
+        }
+
+        if (id == 5) {
+            return new ProfessorHelpTool();
+        }
+
+        if (id >= 0 && id <= 5) {
+            return new SkillTool();
+        }
+
+        return null;
+    }
+
+    // ===================== MOVEMENT =====================
 
     public int getCurrentPlayerID() {
         return players.get(currentPlayerIndex).getId();
     }
 
-    public boolean moveCurrentPlayer(int row, int column) {
-        if (gameOver) {
-            return false;
-        }
+    public boolean moveCurrentPlayer(int nrSpaces) {
+
+        if (gameOver) return false;
 
         Player player = players.get(currentPlayerIndex);
+        // fin de ronda -> verificar empate por bloqueo
+        if (currentPlayerIndex == players.size() - 1) {
+
+            if (!someoneMovedThisRound) {
+                gameOver = true;
+                gameResults.clear();
+
+                for (Player p : players) {
+                    gameResults.add("Draw - " + p.getProgrammer().getName()
+                            + " at position " + p.getCurrentPosition());
+                }
+                return true;
+            }
+
+            // reset para próxima ronda
+            someoneMovedThisRound = false;
+        }
 
         if (!player.isAlive()) {
             currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
-            return false;
+            return true;
         }
 
-        player.moveTo(row, column);
+        int oldPos = player.getCurrentPosition();
+        int newPos = oldPos + nrSpaces;
 
-        // Reaccionar a abismo o herramienta (polimorfismo)
-        reactToAbyssOrTool(player);
+        if (newPos >= board.getSize()) {
+            newPos = board.getSize() - 1;
+        }
 
-        if (row == board.getRows() - 1 && column == board.getColumns() - 1) {
+        Slot oldSlot = board.getSlot(oldPos);
+        if (oldSlot != null) oldSlot.setElement(null);
+
+        player.moveTo(newPos, nrSpaces);
+        if (newPos != oldPos) {
+            someoneMovedThisRound = true;
+        }
+
+
+        reactToAbyssOrTool();
+
+        Slot newSlot = board.getSlot(player.getCurrentPosition());
+        if (newSlot != null && newSlot.isEmpty()) {
+            newSlot.setElement(player.getProgrammer());
+        }
+
+        if (player.getCurrentPosition() == board.getSize() - 1) {
             gameOver = true;
-            gameResult = new GameResult(player.getId(), "Winner reached the final slot");
+            gameResults.clear();
+            gameResults.add("Winner: " + player.getProgrammer().getName()
+                    + " at position " + player.getCurrentPosition());
+        }
+
+        boolean anyoneAlive = false;
+        for (Player p : players) {
+            if (p.isAlive()) {
+                anyoneAlive = true;
+                break;
+            }
+        }
+
+        if (!anyoneAlive) {
+            gameOver = true;
+            gameResults.clear();
+            for (Player p : players) {
+                gameResults.add("Draw - " + p.getProgrammer().getName()
+                        + " at position " + p.getCurrentPosition());
+            }
+            return true;
         }
 
         currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
         return true;
     }
 
-    public void saveGame(String filename) throws IOException {
-        BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
+    // ===================== REACTION =====================
 
-        // Guardar tamaño del tablero
-        writer.write(board.getRows() + "," + board.getColumns());
-        writer.newLine();
+    public String reactToAbyssOrTool() {
 
-        // Guardar jugador actual
-        writer.write(String.valueOf(currentPlayerIndex));
-        writer.newLine();
+        Player player = players.get(currentPlayerIndex);
 
-        // Guardar jugadores
-        writer.write(String.valueOf(players.size()));
-        writer.newLine();
-
-        for (Player player : players) {
-            Programmer p = player.getProgrammer();
-            writer.write(
-                    player.getId() + "," +
-                            player.getCurrentRow() + "," +
-                            player.getCurrentColumn() + "," +
-                            p.getName() + "," +
-                            p.getSkillLevel()
-            );
-            writer.newLine();
+        if (!player.isAlive()) {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+            return "";
         }
 
-        writer.close();
-    }
-    public void loadGame(String filename) throws InvalidFileException {
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(filename));
+        Slot slot = board.getSlot(player.getCurrentPosition());
 
-            // Leer tablero
-            String[] boardData = reader.readLine().split(",");
-            int rows = Integer.parseInt(boardData[0]);
-            int columns = Integer.parseInt(boardData[1]);
-
-            board = new Board(rows, columns);
-            players.clear();
-
-            // Leer jugador actual
-            currentPlayerIndex = Integer.parseInt(reader.readLine());
-
-            // Leer número de jugadores
-            int playerCount = Integer.parseInt(reader.readLine());
-
-            for (int i = 0; i < playerCount; i++) {
-                String[] data = reader.readLine().split(",");
-
-                int id = Integer.parseInt(data[0]);
-                int row = Integer.parseInt(data[1]);
-                int column = Integer.parseInt(data[2]);
-                String name = data[3];
-                int skill = Integer.parseInt(data[4]);
-
-                Programmer programmer = new Programmer(id, name, skill);
-                Player player = new Player(id, programmer);
-                player.moveTo(row, column);
-
-                players.add(player);
-                board.getSlot(row, column).setElement(programmer);
-            }
-
-            gameOver = false;
-            gameResult = null;
-
-            reader.close();
-
-        } catch (Exception e) {
-            throw new InvalidFileException("Invalid save file");
-        }
-    }
-
-    public void reactToAbyssOrTool(Player player) {
-        Slot slot = board.getSlot(player.getCurrentRow(), player.getCurrentColumn());
-
-        if (slot == null) {
-            return;
+        if (slot == null || slot.getElement() == null) {
+            return "";
         }
 
         BoardElement element = slot.getElement();
-
-        if (element != null) {
-            element.react(this, player);
-        }
+        element.react(this, player);
+        return element.getType();
     }
+
+    // ===================== INFO =====================
+
+    public String[] getSlotInfo(int position) {
+
+        Slot slot = board.getSlot(position);
+        if (slot == null || slot.getElement() == null) {
+            return null;
+        }
+
+        return slot.getElement().getInfo();
+    }
+
+
+    public String[] getProgrammerInfo(int id) {
+
+        Player p = players.get(id);
+        Programmer pr = p.getProgrammer();
+
+        return new String[]{
+                String.valueOf(pr.getId()),
+                pr.getName(),
+                String.valueOf(pr.getSkillLevel())
+        };
+    }
+
+    public String getProgrammerInfoAsStr(int id) {
+        Programmer p = players.get(id).getProgrammer();
+        return p.getName() + " | Skill: " + p.getSkillLevel();
+    }
+
+    public String getProgrammersInfo() {
+        StringBuilder sb = new StringBuilder();
+        for (Player p : players) {
+            sb.append(getProgrammerInfoAsStr(p.getId())).append("\n");
+        }
+        return sb.toString();
+    }
+
+    // ===================== RESULTS =====================
 
     public boolean gameIsOver() {
         return gameOver;
     }
 
-    public GameResult getGameResults() {
-        return gameResult;
+    public ArrayList<String> getGameResults() {
+        return gameResults;
     }
 
-    public Slot getSlotInfo(int row, int column) {
-        return board.getSlot(row, column);
+    // ===================== SAVE / LOAD =====================
+
+    public boolean saveGame(File file) {
+
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+
+            // tamaño tablero
+            bw.write(String.valueOf(board.getSize()));
+            bw.newLine();
+
+            // jugador actual
+            bw.write(String.valueOf(currentPlayerIndex));
+            bw.newLine();
+
+            // jugadores
+            bw.write(String.valueOf(players.size()));
+            bw.newLine();
+
+            for (Player p : players) {
+                bw.write(p.getId() + "," + p.getCurrentPosition() + "," + p.isAlive()
+                        + "," + p.getMoveCount() + "," + p.getLastMove()
+                        + "," + p.getProgrammer().getSkillLevel()
+                        + "," + p.getProgrammer().hasProfessorHelp());
+                bw.newLine();
+            }
+
+            // tablero
+            for (int i = 0; i < board.getSize(); i++) {
+                Slot s = board.getSlot(i);
+                if (s.getElement() == null) {
+                    bw.write("E");
+                } else {
+                    bw.write(s.getElement().getType() + ":" + String.join(",", s.getElement().getInfo()));
+                }
+                bw.newLine();
+            }
+
+            return true;
+
+        } catch (IOException e) {
+            return false;
+        }
     }
 
-    public Programmer getProgrammerInfo(int playerId) {
-        return players.get(playerId).getProgrammer();
+
+    public void loadGame(File file) throws InvalidFileException, FileNotFoundException {
+
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+
+            int size = Integer.parseInt(br.readLine());
+            board = new Board(size);
+
+            currentPlayerIndex = Integer.parseInt(br.readLine());
+
+            int playerCount = Integer.parseInt(br.readLine());
+            players.clear();
+
+            for (int i = 0; i < playerCount; i++) {
+                String[] parts = br.readLine().split(",");
+
+                int id = Integer.parseInt(parts[0]);
+                int pos = Integer.parseInt(parts[1]);
+                boolean alive = Boolean.parseBoolean(parts[2]);
+                int moveCount = Integer.parseInt(parts[3]);
+                int lastMove = Integer.parseInt(parts[4]);
+                int skill = Integer.parseInt(parts[5]);
+                boolean hasHelp = Boolean.parseBoolean(parts[6]);
+
+                Programmer pr = new Programmer(id, "Programmer " + id, skill);
+                if (hasHelp) pr.giveProfessorHelp();
+
+                Player p = new Player(id, pr);
+                p.forceMoveTo(pos);
+                for (int m = 0; m < moveCount; m++) p.moveTo(pos, lastMove);
+                if (!alive) p.kill();
+
+                players.add(p);
+            }
+
+            for (int i = 0; i < size; i++) {
+                String line = br.readLine();
+                if (!line.equals("E")) {
+
+                    String[] parts = line.split(":");
+                    String[] info = parts[1].split(",");
+
+                    if (parts[0].equals("Abyss")) {
+                        board.getSlot(i).setElement(new Abyss(info[1]));
+                    } else if (parts[0].equals("Tool")) {
+                        board.getSlot(i).setElement(new SkillTool());
+                    }
+                }
+            }
+
+            gameOver = false;
+            gameResults.clear();
+
+        } catch (Exception e) {
+            throw new InvalidFileException("Invalid file");
+        }
     }
 
-    public String getProgrammerInfoAsStr(int playerId) {
-        Programmer p = players.get(playerId).getProgrammer();
-        return p.getName() + " (Skill " + p.getSkillLevel() + ")";
+
+    // ===================== VISUAL =====================
+
+    public String getImagePng(int nrSquare) {
+        return "slot.png";
     }
 
-    public String getImagePng(int playerId) {
-        return "player" + playerId + ".png";
+    public JPanel getAuthorsPanel() {
+        JPanel panel = new JPanel();
+        panel.add(new JLabel("The Great Programming Journey - Authors"));
+        return panel;
     }
 
-    public String getAuthorsPanel() {
-        return "The Great Programming Journey\nAuthors: TBD";
+    public HashMap<String, String> customizeBoard() {
+
+        HashMap<String, String> map = new HashMap<>();
+        map.put("hasNewAbyss", "true");
+        map.put("hasNewTool", "true");
+        return map;
     }
+
+    // ===================== SUPPORT =====================
 
     public Board getBoard() {
         return board;
